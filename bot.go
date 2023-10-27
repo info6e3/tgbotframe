@@ -85,8 +85,10 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 				prefixAndText := strings.SplitN(text, " ", 2)
 				if len(prefixAndText) == 2 {
 					prefix := prefixAndText[0]
+					msgWithoutPrefix := message
+					msgWithoutPrefix.Text = prefixAndText[1]
 					if b.cmdHandlers[prefix] != nil {
-						b.cmdHandlers[prefix].Handle(b, message)
+						b.cmdHandlers[prefix].Handle(b, msgWithoutPrefix)
 					}
 				}
 			}
