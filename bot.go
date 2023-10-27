@@ -83,14 +83,14 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 			if len(b.cmdHandlers) > 0 {
 				text := strings.TrimPrefix(message.Text, "/")
 				prefixAndText := strings.SplitN(text, " ", 2)
+				prefix := prefixAndText[0]
+				msgWithoutPrefix := message
 				if len(prefixAndText) == 2 {
-					prefix := prefixAndText[0]
-					msgWithoutPrefix := message
 					msgWithoutPrefix.Text = prefixAndText[1]
-					if b.cmdHandlers[prefix] != nil {
-						b.cmdHandlers[prefix].Handle(b, msgWithoutPrefix)
-					}
+				} else {
+					msgWithoutPrefix.Text = ""
 				}
+				b.cmdHandlers[prefix].Handle(b, msgWithoutPrefix)
 			}
 		}
 	}
