@@ -11,15 +11,16 @@ import (
 // Structure
 
 type Bot struct {
-	token        string
-	noneStop     bool
-	bot          *tgbotapi.BotAPI
-	logMutex     *sync.Mutex
-	middlewares  []Middleware
-	textHandler  Handler
-	cmdHandlers  map[string]Handler
-	voiceHandler Handler
-	recipients   []int64
+	token          string
+	noneStop       bool
+	api            *tgbotapi.BotAPI
+	logMutex       *sync.Mutex
+	middlewares    []Middleware
+	textHandler    Handler
+	cmdHandlers    map[string]Handler
+	voiceHandler   Handler
+	customHandlers Handler
+	recipients     []int64
 }
 
 func NewBot(token string, noneStop bool) *Bot {
@@ -33,7 +34,7 @@ func NewBot(token string, noneStop bool) *Bot {
 
 func (b *Bot) Run() {
 	var err error
-	b.bot, err = tgbotapi.NewBotAPI(b.token)
+	b.api, err = tgbotapi.NewBotAPI(b.token)
 	if err != nil {
 		log.Println(err)
 	}
@@ -44,18 +45,18 @@ func (b *Bot) Run() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Println(r)
-				b.bot.StopReceivingUpdates()
+				b.api.StopReceivingUpdates()
 				b.Run()
 			}
 		}()
 	}
 
-	log.Printf("Authorized on account %s", b.bot.Self.UserName)
+	log.Printf("Authorized on account %s", b.api.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates := b.bot.GetUpdatesChan(u)
+	updates := b.api.GetUpdatesChan(u)
 
 	for update := range updates {
 		if update.Message != nil {
@@ -88,8 +89,8 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 				if len(prefixAndText) == 2 {
 					prefix := prefixAndText[0]
 					if b.cmdHandlers[prefix] != nil {
-						msg, err := b.cmdHandlers[prefix].Handle(b.bot, message)
-						if err == nil {
+						msg, err := b.cmdHandlers[prefix].Handle(b, message)
+						if err == nil && msg == nil {
 							b.send(msg)
 						}
 					}
@@ -97,16 +98,16 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 			}
 		} else if b.textHandler != nil { // Обработка текста
 			if !message.Chat.IsGroup() && !message.Chat.IsSuperGroup() {
-				msg, err := b.textHandler.Handle(b.bot, message)
-				if err == nil {
+				msg, err := b.textHandler.Handle(b, message)
+				if err == nil && msg == nil {
 					b.send(msg)
 				}
 			}
 		}
 		// Обработка войсов
 	case message.Voice != nil:
-		msg, err := b.voiceHandler.Handle(b.bot, message)
-		if err == nil {
+		msg, err := b.voiceHandler.Handle(b, message)
+		if err == nil && msg == nil {
 			b.send(msg)
 		}
 	}
@@ -126,7 +127,7 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 func (b *Bot) send(chattable tgbotapi.Chattable) {
 	jsonData, _ := json.Marshal(chattable)
 	b.log(jsonData)
-	_, err := b.bot.Send(chattable)
+	_, err := b.api.Send(chattable)
 	if err != nil {
 		log.Println(err)
 	}
@@ -140,7 +141,7 @@ func (b *Bot) SetMiddlewares(middlewares []Middleware) {
 
 func (b *Bot) applyMiddlewares(message *tgbotapi.Message) error {
 	for _, v := range b.middlewares {
-		err := v.Apply(b.bot, message)
+		err := v.Apply(b.api, message)
 		if err != nil {
 			return err
 		}
