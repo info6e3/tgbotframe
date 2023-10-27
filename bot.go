@@ -99,11 +99,9 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 
 	// TODO: Вынести отдельно все дополнительные
 
-	if len(b.recipients) > 0 {
-		for _, recipient := range b.recipients {
-			msg := tgbotapi.NewCopyMessage(recipient, message.Chat.ID, message.MessageID)
-			b.Send(msg)
-		}
+	for _, recipient := range b.recipients {
+		msg := tgbotapi.NewCopyMessage(recipient, message.Chat.ID, message.MessageID)
+		b.Send(msg)
 	}
 }
 
