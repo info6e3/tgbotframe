@@ -3,7 +3,7 @@ package tgbotframe
 import "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 type Handler interface {
-	Handle(bot *Bot, message *tgbotapi.Message) (tgbotapi.Chattable, error)
+	Handle(bot *Bot, message *tgbotapi.Message) (ok bool)
 }
 
 // HandlerWithMiddlewares
@@ -13,35 +13,33 @@ type HandlerWithMiddlewares struct {
 	Middlewares []Middleware
 }
 
-func (h *HandlerWithMiddlewares) applyMiddlewares(bot *Bot, message *tgbotapi.Message) error {
+func (h *HandlerWithMiddlewares) applyMiddlewares(bot *Bot, message *tgbotapi.Message) (ok bool) {
 	for _, v := range h.Middlewares {
-		err := v.Apply(bot.api, message)
-		if err != nil {
-			return err
+		if ok = v.Apply(bot.api, message); ok == false {
+			return false
 		}
 	}
-	return nil
+	return true
 }
 
-func (h *HandlerWithMiddlewares) Handle(bot *Bot, message *tgbotapi.Message) (tgbotapi.Chattable, error) {
-	if err := h.applyMiddlewares(bot, message); err != nil {
-		return nil, err
+func (h *HandlerWithMiddlewares) Handle(bot *Bot, message *tgbotapi.Message) (ok bool) {
+	if ok = h.applyMiddlewares(bot, message); ok == false {
+		return false
 	}
 
-	ch, err := h.Handler.Handle(bot, message)
-	if err != nil {
-		return nil, err
+	if ok = h.Handler.Handle(bot, message); ok == false {
+		return false
 	}
 
-	return ch, nil
+	return true
 }
 
 // HandleFunc
 
 type HandleFunc struct {
-	Func func(bot *Bot, message *tgbotapi.Message) (tgbotapi.Chattable, error)
+	Func func(bot *Bot, message *tgbotapi.Message) (ok bool)
 }
 
-func (h *HandleFunc) Handle(bot *Bot, message *tgbotapi.Message) (tgbotapi.Chattable, error) {
+func (h *HandleFunc) Handle(bot *Bot, message *tgbotapi.Message) (ok bool) {
 	return h.Func(bot, message)
 }

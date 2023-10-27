@@ -11,16 +11,14 @@ import (
 // Structure
 
 type Bot struct {
-	token          string
-	noneStop       bool
-	api            *tgbotapi.BotAPI
-	logMutex       *sync.Mutex
-	middlewares    []Middleware
-	textHandler    Handler
-	cmdHandlers    map[string]Handler
-	voiceHandler   Handler
-	customHandlers Handler
-	recipients     []int64
+	token       string
+	noneStop    bool
+	api         *tgbotapi.BotAPI
+	logMutex    *sync.Mutex
+	middlewares []Middleware
+	cmdHandlers map[string]Handler
+	handlers    []Handler
+	recipients  []int64
 }
 
 func NewBot(token string, noneStop bool) *Bot {
@@ -75,13 +73,12 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 	jsonData, _ := json.Marshal(message)
 	b.log(jsonData)
 
-	if err := b.applyMiddlewares(message); err != nil {
+	if ok := b.applyMiddlewares(message); ok == false {
 		return
 	}
 
-	switch {
-	case message.Text != "":
-		// Обработка команд /
+	// Обработка команд /
+	if message.Text != "" {
 		if strings.HasPrefix(message.Text, "/") {
 			if len(b.cmdHandlers) > 0 {
 				text := strings.TrimPrefix(message.Text, "/")
@@ -89,27 +86,15 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 				if len(prefixAndText) == 2 {
 					prefix := prefixAndText[0]
 					if b.cmdHandlers[prefix] != nil {
-						msg, err := b.cmdHandlers[prefix].Handle(b, message)
-						if err == nil && msg != nil {
-							b.send(msg)
-						}
+						b.cmdHandlers[prefix].Handle(b, message)
 					}
 				}
 			}
-		} else if b.textHandler != nil { // Обработка текста
-			if !message.Chat.IsGroup() && !message.Chat.IsSuperGroup() {
-				msg, err := b.textHandler.Handle(b, message)
-				if err == nil && msg != nil {
-					b.send(msg)
-				}
-			}
 		}
-		// Обработка войсов
-	case message.Voice != nil:
-		msg, err := b.voiceHandler.Handle(b, message)
-		if err == nil && msg != nil {
-			b.send(msg)
-		}
+	}
+
+	for _, handler := range b.handlers {
+		handler.Handle(b, message)
 	}
 
 	// TODO: Вынести отдельно все дополнительные
@@ -117,14 +102,14 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 	if len(b.recipients) > 0 {
 		for _, recipient := range b.recipients {
 			msg := tgbotapi.NewCopyMessage(recipient, message.Chat.ID, message.MessageID)
-			b.send(msg)
+			b.Send(msg)
 		}
 	}
 }
 
 // Bot Functions
 
-func (b *Bot) send(chattable tgbotapi.Chattable) {
+func (b *Bot) Send(chattable tgbotapi.Chattable) {
 	jsonData, _ := json.Marshal(chattable)
 	b.log(jsonData)
 	_, err := b.api.Send(chattable)
@@ -139,24 +124,19 @@ func (b *Bot) SetMiddlewares(middlewares []Middleware) {
 	b.middlewares = middlewares
 }
 
-func (b *Bot) applyMiddlewares(message *tgbotapi.Message) error {
+func (b *Bot) applyMiddlewares(message *tgbotapi.Message) (ok bool) {
 	for _, v := range b.middlewares {
-		err := v.Apply(b.api, message)
-		if err != nil {
-			return err
+		if ok = v.Apply(b.api, message); ok == false {
+			return ok
 		}
 	}
-	return nil
+	return true
 }
 
 // Bot Handlers
 
-func (b *Bot) SetTextHandler(handler Handler) {
-	b.textHandler = handler
-}
-
-func (b *Bot) SetVoiceHandler(handler Handler) {
-	b.voiceHandler = handler
+func (b *Bot) SetHandler(handler Handler) {
+	b.handlers = append(b.handlers, handler)
 }
 
 func (b *Bot) SetCmdHandler(key string, handler Handler) {

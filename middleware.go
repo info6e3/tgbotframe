@@ -5,5 +5,5 @@ import (
 )
 
 type Middleware interface {
-	Apply(*tgbotapi.BotAPI, *tgbotapi.Message) error
+	Apply(*tgbotapi.BotAPI, *tgbotapi.Message) (ok bool)
 }
