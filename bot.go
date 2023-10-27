@@ -90,7 +90,7 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 					prefix := prefixAndText[0]
 					if b.cmdHandlers[prefix] != nil {
 						msg, err := b.cmdHandlers[prefix].Handle(b, message)
-						if err == nil && msg == nil {
+						if err == nil && msg != nil {
 							b.send(msg)
 						}
 					}
@@ -99,7 +99,7 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 		} else if b.textHandler != nil { // Обработка текста
 			if !message.Chat.IsGroup() && !message.Chat.IsSuperGroup() {
 				msg, err := b.textHandler.Handle(b, message)
-				if err == nil && msg == nil {
+				if err == nil && msg != nil {
 					b.send(msg)
 				}
 			}
@@ -107,7 +107,7 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 		// Обработка войсов
 	case message.Voice != nil:
 		msg, err := b.voiceHandler.Handle(b, message)
-		if err == nil && msg == nil {
+		if err == nil && msg != nil {
 			b.send(msg)
 		}
 	}
