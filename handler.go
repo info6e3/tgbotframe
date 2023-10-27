@@ -23,14 +23,15 @@ func (h *HandlerWithMiddlewares) applyMiddlewares(bot *tgbotapi.BotAPI, message 
 	return nil
 }
 
-func (h *HandlerWithMiddlewares) Handle(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+func (h *HandlerWithMiddlewares) Handle(bot *tgbotapi.BotAPI, message *tgbotapi.Message) (tgbotapi.Chattable, error) {
 	if err := h.applyMiddlewares(bot, message); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := h.Handle(bot, message); err != nil {
-		return err
+	ch, err := h.Handler.Handle(bot, message)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return ch, nil
 }

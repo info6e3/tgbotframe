@@ -2,7 +2,6 @@ package tgbotframe
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"strings"
@@ -114,7 +113,6 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 
 	// TODO: Вынести отдельно все дополнительные
 
-	fmt.Println(message.Chat.ID)
 	if len(b.recipients) > 0 {
 		for _, recipient := range b.recipients {
 			msg := tgbotapi.NewCopyMessage(recipient, message.Chat.ID, message.MessageID)
