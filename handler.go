@@ -35,3 +35,13 @@ func (h *HandlerWithMiddlewares) Handle(bot *Bot, message *tgbotapi.Message) (tg
 
 	return ch, nil
 }
+
+// HandleFunc
+
+type HandleFunc struct {
+	Func func(bot *Bot, message *tgbotapi.Message) (tgbotapi.Chattable, error)
+}
+
+func (h *HandleFunc) Handle(bot *Bot, message *tgbotapi.Message) (tgbotapi.Chattable, error) {
+	return h.Func(bot, message)
+}
