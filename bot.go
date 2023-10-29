@@ -152,3 +152,13 @@ func (b *Bot) SetCmdHandler(key string, handler Handler) {
 func (b *Bot) SetRecipient(chatId int64) {
 	b.recipients = append(b.recipients, chatId)
 }
+
+func (b *Bot) RemoveRecipient(chatId int64) {
+	for i, recipient := range b.recipients {
+		if recipient == chatId {
+			size := len(b.recipients)
+			b.recipients[i] = b.recipients[size-1]
+			b.recipients = b.recipients[:size-1]
+		}
+	}
+}
