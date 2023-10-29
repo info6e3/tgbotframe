@@ -150,7 +150,15 @@ func (b *Bot) SetCmdHandler(key string, handler Handler) {
 // Bot additional functions
 
 func (b *Bot) SetRecipient(chatId int64) {
-	b.recipients = append(b.recipients, chatId)
+	exist := false
+	for _, recipient := range b.recipients {
+		if recipient == chatId {
+			exist = true
+		}
+	}
+	if !exist {
+		b.recipients = append(b.recipients, chatId)
+	}
 }
 
 func (b *Bot) RemoveRecipient(chatId int64) {
