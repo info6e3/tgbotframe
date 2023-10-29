@@ -80,10 +80,10 @@ func (b *Bot) handle(message *tgbotapi.Message) {
 	// Обработка команд /
 	if message.Text != "" {
 		if strings.HasPrefix(message.Text, "/") {
-			if len(b.cmdHandlers) > 0 {
-				text := strings.TrimPrefix(message.Text, "/")
-				prefixAndText := strings.SplitN(text, " ", 2)
-				prefix := prefixAndText[0]
+			text := strings.TrimPrefix(message.Text, "/")
+			prefixAndText := strings.SplitN(text, " ", 2)
+			prefix := prefixAndText[0]
+			if b.cmdHandlers[prefix] != nil {
 				msgWithoutPrefix := message
 				if len(prefixAndText) == 2 {
 					msgWithoutPrefix.Text = prefixAndText[1]
